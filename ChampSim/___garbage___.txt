@@ -1,0 +1,12 @@
+build_champsim.sh: line 19: tput: command not found
+build_champsim.sh: line 20: tput: command not found
+Building single-core ChampSim...
+
+make: /bin/sh: Command not found
+rm -f -r obj
+make: /bin/sh: Command not found
+make: /bin/sh: Command not found
+make: *** [Makefile:61: buildrepo] Error 127
+
+ChampSim build FAILED!
+
