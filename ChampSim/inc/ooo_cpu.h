@@ -58,6 +58,8 @@ class O3_CPU {
     CORE_BUFFER ROB{"ROB", ROB_SIZE};
     LOAD_STORE_QUEUE LQ{"LQ", LQ_SIZE}, SQ{"SQ", SQ_SIZE};
 
+    PACKET_QUEUE PREFETCHER_TLB_REPLY_QUEUE{"PREFETCHER_TLB_REPLY_QUEUE", 1000};
+
     // store array, this structure is required to properly handle store instructions
     uint64_t STA[STA_SIZE], STA_head, STA_tail; 
 

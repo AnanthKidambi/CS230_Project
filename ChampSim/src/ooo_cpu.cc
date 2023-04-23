@@ -3,6 +3,7 @@
 
 #define NEW_ADDITION(x) x
 
+
 // out-of-order core
 O3_CPU ooo_cpu[NUM_CPUS]; 
 uint64_t current_core_cycle[NUM_CPUS], stall_cycle[NUM_CPUS];
@@ -1961,7 +1962,13 @@ void O3_CPU::complete_data_fetch(PACKET_QUEUE *queue, uint8_t is_it_tlb)
     // update ROB entry
     if (is_it_tlb) { // DTLB
 
-        if (queue->entry[index].type == RFO) {
+        if (queue->entry[index].type == PREFETCHER_TLB_REQUEST){
+            PACKET reply;
+            reply.virtual_addr = queue->entry[index].virtual_addr;
+            reply.address = queue->entry[index].data_pa << LOG2_PAGE_SIZE;
+            PREFETCHER_TLB_REPLY_QUEUE.add_queue(&reply);
+        }
+        else if (queue->entry[index].type == RFO) {
             SQ.entry[sq_index].physical_address = (queue->entry[index].data_pa << LOG2_PAGE_SIZE) | (SQ.entry[sq_index].virtual_address & ((1 << LOG2_PAGE_SIZE) - 1)); // translated address
             SQ.entry[sq_index].translated = COMPLETED;
             SQ.entry[sq_index].event_cycle = current_core_cycle[cpu];

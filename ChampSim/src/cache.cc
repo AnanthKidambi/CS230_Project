@@ -616,13 +616,15 @@ void CACHE::handle_read()
 				{
 					if (cache_type == IS_L1I)
 						l1i_prefetcher_cache_operate(read_cpu, RQ.entry[index].ip, 1, block[set][way].prefetch);
-					if (cache_type == IS_L1D)
+					if (cache_type == IS_L1D){
 						REMOVE_OLD_ADDITION(l1d_prefetcher_operate(RQ.entry[index].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);)
 						NEW_ADDITION(l1d_prefetcher_operate(RQ.entry[index].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type, RQ.entry[index].virtual_addr);)
-					else if (cache_type == IS_L2C)
-						l2c_prefetcher_operate(block[set][way].address << LOG2_BLOCK_SIZE, RQ.entry[index].ip, 1, RQ.entry[index].type, 0);
-					else if (cache_type == IS_LLC)
-					{
+					}
+					else if (cache_type == IS_L2C){
+						REMOVE_OLD_ADDITION(l2c_prefetcher_operate(block[set][way].address << LOG2_BLOCK_SIZE, RQ.entry[index].ip, 1, RQ.entry[index].type, 0);)
+						NEW_ADDITION(l2c_prefetcher_operate(block[set][way].address << LOG2_BLOCK_SIZE, RQ.entry[index].ip, 1, RQ.entry[index].type, 0, RQ.entry[index].virtual_addr);)						
+					}
+					else if (cache_type == IS_LLC){
 						cpu = read_cpu;
 						llc_prefetcher_operate(block[set][way].address << LOG2_BLOCK_SIZE, RQ.entry[index].ip, 1, RQ.entry[index].type, 0);
 						cpu = 0;
