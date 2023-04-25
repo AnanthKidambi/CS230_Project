@@ -12,6 +12,8 @@ Biswabandan Panda - biswap@cse.iitk.ac.in
 #include "cache.h"
 #include "ooo_cpu.h"
 
+#include <bits/stdc++.h>
+
 #define NUM_IP_TABLE_L1_ENTRIES 1024 // IP table entries
 #define NUM_GHB_ENTRIES 16           // Entries in the GHB
 #define NUM_IP_INDEX_BITS 10         // Bits to index into the IP table
@@ -27,6 +29,32 @@ Biswabandan Panda - biswap@cse.iitk.ac.in
 #else
 #define SIG_DP(x)
 #endif
+
+PACKET get_tlb_request_packet(int cpu, uint64_t virtual_addr, uint64_t cycle){
+    PACKET data_packet;
+
+    data_packet.tlb_access = 1;
+    // data_packet.fill_level = FILL_L1;
+    // data_packet.fill_l1d = 1;
+    data_packet.cpu = cpu;
+    data_packet.data_index = PREFETCHER_TLB_REQUEST;
+    // data_packet.sq_index = sq_index;
+    // if (knob_cloudsuite)
+    //     data_packet.address = ((SQ.entry[sq_index].virtual_address >> LOG2_PAGE_SIZE) << 9) | SQ.entry[sq_index].asid[1];
+    // else
+    //     data_packet.address = SQ.entry[sq_index].virtual_address >> LOG2_PAGE_SIZE;
+    data_packet.address = virtual_addr >> LOG2_PAGE_SIZE;
+    data_packet.full_addr = virtual_addr;
+    // data_packet.instr_id = SQ.entry[sq_index].instr_id;
+    // data_packet.rob_index = SQ.entry[sq_index].rob_index;
+    // data_packet.ip = SQ.entry[sq_index].ip;
+    // data_packet.type = RFO;
+    // data_packet.asid[0] = SQ.entry[sq_index].asid[0];
+    // data_packet.asid[1] = SQ.entry[sq_index].asid[1];
+    data_packet.event_cycle = cycle;
+
+    return data_packet;
+}
 
 class IP_TABLE_L1
 {
@@ -191,12 +219,13 @@ void CACHE::l1d_prefetcher_initialize()
 {
 }
 
-#define PP_SIZE 10
+unordered_map<uint64_t, pair<uint32_t, uint32_t>> pending_translations; //map of virtual address vs {num_prefetches, cycle}
+uint32_t num_pending_translations = 0; //number of pending replies from the tlb
+
+#define MAX_PENDING_TRANSLATIONS 8 
 
 void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type, uint64_t virtual_addr)
 {
-    static PACKET_QUEUE pending_prefetches{"PP", PP_SIZE};
-
     uint64_t curr_page = addr >> LOG2_PAGE_SIZE;
     uint64_t cl_addr = addr >> LOG2_BLOCK_SIZE;
     uint64_t cl_offset = (addr >> LOG2_BLOCK_SIZE) & 0x3F;
@@ -257,9 +286,9 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
         }
 
         // issue a next line prefetch upon encountering new IP
-        uint64_t pf_address = ((addr >> LOG2_BLOCK_SIZE) + 1) << LOG2_BLOCK_SIZE; // BASE NL=1, changing it to 3
-        metadata = encode_metadata(1, NL_TYPE, spec_nl[cpu]);
-        prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
+        // uint64_t pf_address = ((addr >> LOG2_BLOCK_SIZE) + 1) << LOG2_BLOCK_SIZE; // BASE NL=1, changing it to 3
+        // metadata = encode_metadata(1, NL_TYPE, spec_nl[cpu]);
+        // prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
         return;
     }
     else
@@ -325,21 +354,34 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
         for (int i = 0; i < prefetch_degree; i++)
         {
             uint64_t pf_address = 0;
+            uint64_t pf_virtual_addr = 0;
 
             if (trackers_l1[cpu][index].str_dir == 1)
             { // +ve stream
                 pf_address = (cl_addr + i + 1) << LOG2_BLOCK_SIZE;
+                pf_virtual_addr = (virtual_addr + i + 1) << LOG2_BLOCK_SIZE;
                 metadata = encode_metadata(1, S_TYPE, spec_nl[cpu]); // stride is 1
             }
             else
             { // -ve stream
                 pf_address = (cl_addr - i - 1) << LOG2_BLOCK_SIZE;
+                pf_virtual_addr = (virtual_addr - i - 1) << LOG2_BLOCK_SIZE;
                 metadata = encode_metadata(-1, S_TYPE, spec_nl[cpu]); // stride is -1
             }
 
             // Check if prefetch address is in same 4 KB page
             if ((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE))
             {
+                // break;
+                if (num_pending_translations <= MAX_PENDING_TRANSLATIONS){
+                    if (pending_translations.find(pf_virtual_addr) != pending_translations.end())
+                        pending_translations[pf_virtual_addr] = {max(uint32_t(prefetch_degree - i), pending_translations[pf_virtual_addr].first), current_core_cycle[cpu]};
+                    else
+                        pending_translations[pf_virtual_addr] = {prefetch_degree - i, current_core_cycle[cpu]};
+                    num_pending_translations++;
+                    PACKET tlb_packet = get_tlb_request_packet(cpu, virtual_addr, current_core_cycle[cpu]);
+                    ooo_cpu[cpu].DTLB.add_rq(&tlb_packet);
+                }
                 break;
             }
 
@@ -353,10 +395,20 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
         for (int i = 0; i < prefetch_degree; i++)
         {
             uint64_t pf_address = (cl_addr + (trackers_l1[cpu][index].last_stride * (i + 1))) << LOG2_BLOCK_SIZE;
+            uint64_t pf_virtual_addr = (virtual_addr + (trackers_l1[cpu][index].last_stride * (i + 1))) << LOG2_BLOCK_SIZE;
 
             // Check if prefetch address is in same 4 KB page
             if ((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE))
             {
+                if (num_pending_translations <= MAX_PENDING_TRANSLATIONS){
+                    if (pending_translations.find(pf_virtual_addr) != pending_translations.end())
+                        pending_translations[pf_virtual_addr] = {max(uint32_t(prefetch_degree - i), pending_translations[pf_virtual_addr].first), current_core_cycle[cpu]};
+                    else
+                        pending_translations[pf_virtual_addr] = {prefetch_degree - i, current_core_cycle[cpu]};
+                    num_pending_translations++;
+                    PACKET tlb_packet = get_tlb_request_packet(cpu, virtual_addr, current_core_cycle[cpu]);
+                    ooo_cpu[cpu].DTLB.add_rq(&tlb_packet);
+                }
                 break;
             }
 
@@ -373,11 +425,21 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
         {
             pref_offset += DPT_l1[cpu][signature].delta;
             uint64_t pf_address = ((cl_addr + pref_offset) << LOG2_BLOCK_SIZE);
+            uint64_t pf_virtual_addr = ((virtual_addr + pref_offset) << LOG2_BLOCK_SIZE);
 
             // Check if prefetch address is in same 4 KB page
-            if (((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE)) ||
-                (DPT_l1[cpu][signature].conf == -1) ||
-                (DPT_l1[cpu][signature].delta == 0))
+            if ((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE)){
+                if (num_pending_translations <= MAX_PENDING_TRANSLATIONS){
+                    if (pending_translations.find(pf_virtual_addr) != pending_translations.end())
+                        pending_translations[pf_virtual_addr] = {max(uint32_t(prefetch_degree - i), pending_translations[pf_virtual_addr].first), current_core_cycle[cpu]};
+                    else
+                        pending_translations[pf_virtual_addr] = {prefetch_degree - i, current_core_cycle[cpu]};
+                    num_pending_translations++;
+                    PACKET tlb_packet = get_tlb_request_packet(cpu, virtual_addr, current_core_cycle[cpu]);
+                    ooo_cpu[cpu].DTLB.add_rq(&tlb_packet);
+                }
+            }
+            if (((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE)) || (DPT_l1[cpu][signature].conf == -1) || (DPT_l1[cpu][signature].delta == 0))
             {
                 // if new entry in DPT or delta is zero, break
                 break;
@@ -393,6 +455,15 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
             }
             signature = update_sig_l1(signature, DPT_l1[cpu][signature].delta);
         }
+    }
+
+    //get physical addresses from the tlb and issue prefetches
+    PACKET_QUEUE& TLB_REPLY =  ooo_cpu[cpu].PREFETCHER_TLB_REPLY_QUEUE;
+    if (TLB_REPLY.occupancy != 0){
+        //take the physical address from TLB_REPLY and prefetch the required number of lines based on what is given in pending_translations
+        //if the entry in pending_translations is too old, then dont prefetch
+        //get rid of extremely old entries from pending_translations
+        num_prefs++;
     }
 
     // if no prefetches are issued till now, speculatively issue a next_line prefetch
