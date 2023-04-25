@@ -1966,6 +1966,7 @@ void O3_CPU::complete_data_fetch(PACKET_QUEUE *queue, uint8_t is_it_tlb)
             PACKET reply;
             reply.virtual_addr = queue->entry[index].virtual_addr;
             reply.address = queue->entry[index].data_pa << LOG2_PAGE_SIZE;
+            reply.event_cycle = current_core_cycle[cpu];
             PREFETCHER_TLB_REPLY_QUEUE.add_queue(&reply);
         }
         else if (queue->entry[index].type == RFO) {

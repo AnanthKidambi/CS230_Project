@@ -219,7 +219,7 @@ void CACHE::l1d_prefetcher_initialize()
 {
 }
 
-unordered_map<uint64_t, future_pref*> pending_translations; //map of virtual address vs {num_prefetches, cycle, stride, metadata, prev_addr}
+unordered_map<uint64_t, future_pref> pending_translations; //map of virtual address vs {num_prefetches, cycle, stride, metadata, prev_addr}
 uint32_t num_pending_translations = 0; //number of pending replies from the tlb
 
 #define MAX_PENDING_TRANSLATIONS 8 
@@ -375,7 +375,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
             {
                 // break;
                 if (pending_translations.find(pf_virtual_addr) != pending_translations.end()){
-                    future_pref* old = pending_translations[pf_virtual_addr];
+                    future_pref* old = &pending_translations[pf_virtual_addr];
                     old->num_prefeteches = prefetch_degree - i;
                     old->cycle = current_core_cycle[cpu];
                     if (trackers_l1[cpu][index].str_dir == 1)
@@ -386,21 +386,19 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
                     old->metadata = metadata;
                 }
                 else if (num_pending_translations <= MAX_PENDING_TRANSLATIONS){
-                    pending_translations[pf_virtual_addr] = new future_pref;
-                    pending_translations[pf_virtual_addr]->num_prefeteches = prefetch_degree - i;
-                    pending_translations[pf_virtual_addr]->cycle = current_core_cycle[cpu];
+                    pending_translations[pf_virtual_addr].num_prefeteches = prefetch_degree - i;
+                    pending_translations[pf_virtual_addr].cycle = current_core_cycle[cpu];
                     if (trackers_l1[cpu][index].str_dir == 1)
-                        pending_translations[pf_virtual_addr]->stride = 1;
+                        pending_translations[pf_virtual_addr].stride = 1;
                     else
-                        pending_translations[pf_virtual_addr]->stride = -1;
-                    pending_translations[pf_virtual_addr]->prev_addr = addr;
-                    pending_translations[pf_virtual_addr]->metadata = metadata;
+                        pending_translations[pf_virtual_addr].stride = -1;
+                    pending_translations[pf_virtual_addr].prev_addr = addr;
+                    pending_translations[pf_virtual_addr].metadata = metadata;
                     num_pending_translations++;
                     PACKET tlb_packet = get_tlb_request_packet(cpu, virtual_addr, current_core_cycle[cpu], ip);
                     ooo_cpu[cpu].DTLB.add_rq(&tlb_packet);
                 }
-                // abhi jo mangwaya hai usko prefetch nahi karna hai ----------------------------
-                break; ///////// really ?????????????????
+                break;
             }
             else{
                 prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
@@ -420,7 +418,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
             if ((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE))
             {
                 if (pending_translations.find(pf_virtual_addr) != pending_translations.end()){
-                    future_pref* old = pending_translations[pf_virtual_addr];
+                    future_pref* old = &pending_translations[pf_virtual_addr];
                     old->num_prefeteches = prefetch_degree - i;
                     old->cycle = current_core_cycle[cpu];
                     old->stride = trackers_l1[cpu][index].last_stride;
@@ -428,18 +426,16 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
                     old->metadata = metadata;
                 }
                 else if (num_pending_translations <= MAX_PENDING_TRANSLATIONS){
-                    pending_translations[pf_virtual_addr] = new future_pref;
-                    pending_translations[pf_virtual_addr]->num_prefeteches = prefetch_degree - i;
-                    pending_translations[pf_virtual_addr]->cycle = current_core_cycle[cpu];
-                    pending_translations[pf_virtual_addr]->stride = trackers_l1[cpu][index].last_stride;
-                    pending_translations[pf_virtual_addr]->prev_addr = addr;
-                    pending_translations[pf_virtual_addr]->metadata = metadata;
+                    pending_translations[pf_virtual_addr].num_prefeteches = prefetch_degree - i;
+                    pending_translations[pf_virtual_addr].cycle = current_core_cycle[cpu];
+                    pending_translations[pf_virtual_addr].stride = trackers_l1[cpu][index].last_stride;
+                    pending_translations[pf_virtual_addr].prev_addr = addr;
+                    pending_translations[pf_virtual_addr].metadata = metadata;
                     num_pending_translations++;
                     PACKET tlb_packet = get_tlb_request_packet(cpu, virtual_addr, current_core_cycle[cpu], ip);
                     ooo_cpu[cpu].DTLB.add_rq(&tlb_packet);
                 }
-                // abhi jo mangwaya hai usko prefetch nahi karna hai ----------------------------
-                break; ///////// really ?????????????????
+                break;
             }
             else{
                 prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
@@ -450,41 +446,25 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
     }
     else if (DPT_l1[cpu][signature].conf >= 0 && DPT_l1[cpu][signature].delta != 0)
     {                               // if conf>=0, continue looking for delta
-        int pref_offset = 0, i = 0; // CPLX IP
-        for (i = 0; i < prefetch_degree; i++)
-        {
+        int pref_offset = 0,i=0;                                                        // CPLX IP
+        for (i=0; i<prefetch_degree; i++) {
             pref_offset += DPT_l1[cpu][signature].delta;
             uint64_t pf_address = ((cl_addr + pref_offset) << LOG2_BLOCK_SIZE);
-            uint64_t pf_virtual_addr = ((cl_virtual_addr + pref_offset) << LOG2_BLOCK_SIZE);
 
-            if ((DPT_l1[cpu][signature].conf == -1) || (DPT_l1[cpu][signature].delta == 0))
-            {
+            // Check if prefetch address is in same 4 KB page
+            if (((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE)) || 
+                    (DPT_l1[cpu][signature].conf == -1) ||
+                    (DPT_l1[cpu][signature].delta == 0)){
                 // if new entry in DPT or delta is zero, break
                 break;
             }
-            ////////////////////////// TO SEE IF NEED FOR IMPLEMENTATION /////////////////////////////////
-            ////////////////////////// OR TO DELETE ///////////////////////////////
-            // Check if prefetch address is in same 4 KB page
-            if ((pf_address >> LOG2_PAGE_SIZE) != (addr >> LOG2_PAGE_SIZE)){
-                if (num_pending_translations <= MAX_PENDING_TRANSLATIONS){
-                    if (pending_translations.find(pf_virtual_addr) != pending_translations.end())
-                        pending_translations[pf_virtual_addr] = {max(uint32_t(prefetch_degree - i), pending_translations[pf_virtual_addr].first), current_core_cycle[cpu]};
-                    else
-                        pending_translations[pf_virtual_addr] = {prefetch_degree - i, current_core_cycle[cpu]};
-                    num_pending_translations++;
-                    PACKET tlb_packet = get_tlb_request_packet(cpu, virtual_addr, current_core_cycle[cpu], ip);
-                    ooo_cpu[cpu].DTLB.add_rq(&tlb_packet);
-                }
-            }
-            else{
-                // we are not prefetching at L2 for CPLX type, so encode delta as 0
-                metadata = encode_metadata(0, CPLX_TYPE, spec_nl[cpu]);
-                if (DPT_l1[cpu][signature].conf > 0)
-                { // prefetch only when conf>0 for CPLX
-                    prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
-                    num_prefs++;
-                    SIG_DP(cout << pref_offset << ", ");
-                }
+
+            // we are not prefetching at L2 for CPLX type, so encode delta as 0
+            metadata = encode_metadata(0, CPLX_TYPE, spec_nl[cpu]);
+            if(DPT_l1[cpu][signature].conf > 0){                                 // prefetch only when conf>0 for CPLX
+                prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
+                num_prefs++;
+                SIG_DP(cout << pref_offset << ", ");
             }
             signature = update_sig_l1(signature, DPT_l1[cpu][signature].delta);
         }
@@ -501,7 +481,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
         while(TLB_REPLY.occupancy!=0){
             uint64_t pf_addr_start = ( TLB_REPLY.entry[TLB_REPLY.head].virtual_addr & ((1 << LOG2_PAGE_SIZE) - 1)) | TLB_REPLY.entry[TLB_REPLY.head].address;
             uint64_t cl_pf_addr = pf_addr_start >> LOG2_BLOCK_SIZE;
-            future_pref *next_in_line = pending_translations[TLB_REPLY.entry[TLB_REPLY.head].virtual_addr];
+            future_pref *next_in_line = &pending_translations[TLB_REPLY.entry[TLB_REPLY.head].virtual_addr];
             for(int i=0; i<next_in_line->num_prefeteches; i++)
             {
                 uint64_t pf_address = (cl_pf_addr + (next_in_line->stride * i)) << LOG2_BLOCK_SIZE;

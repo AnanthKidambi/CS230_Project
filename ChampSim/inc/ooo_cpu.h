@@ -232,12 +232,11 @@ extern O3_CPU ooo_cpu[NUM_CPUS];
 ////////////////// new struct ///////////////////////
 struct future_pref
 {
-  uint64_t num_prefeteches;
-  uint64_t cycle;
-  uint64_t stride;
-  uint32_t metadata;
-  uint64_t prev_addr;
-  future_pref(){}
+  uint64_t num_prefeteches = 0;
+  uint64_t cycle = 0;
+  uint64_t stride = 0;
+  uint32_t metadata = 0;
+  uint64_t prev_addr = 0;
 };
 
 #endif
