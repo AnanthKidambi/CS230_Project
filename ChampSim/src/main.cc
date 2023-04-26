@@ -242,6 +242,14 @@ void print_deadlock(uint32_t i)
     cout << " event: " << ooo_cpu[i].ROB.entry[ooo_cpu[i].ROB.head].event_cycle;
     cout << " current: " << current_core_cycle[i] << endl;
 
+    cout << "addresses: ";
+    for(int j{0}; j < NUM_INSTR_SOURCES; j++){
+        cout << ooo_cpu[i].ROB.entry[ooo_cpu[i].ROB.head].source_virtual_address[j] << " ";
+    }
+    for(int j{0}; j < NUM_INSTR_DESTINATIONS_SPARC; j++){
+        cout << ooo_cpu[i].ROB.entry[ooo_cpu[i].ROB.head].destination_virtual_address[j] << " ";
+    }
+
     // print LQ entry
     cout << endl << "Load Queue Entry" << endl;
     for (uint32_t j=0; j<LQ_SIZE; j++) {
@@ -262,6 +270,7 @@ void print_deadlock(uint32_t i)
         cout << "[" << queue->NAME << "] entry: " << j << " instr_id: " << queue->entry[j].instr_id << " rob_index: " << queue->entry[j].rob_index;
         cout << " address: " << hex << queue->entry[j].address << " full_addr: " << queue->entry[j].full_addr << dec << " type: " << +queue->entry[j].type;
         cout << " fill_level: " << queue->entry[j].fill_level << " lq_index: " << queue->entry[j].lq_index << " sq_index: " << queue->entry[j].sq_index << endl; 
+        cout << "data index: " << queue->entry[j].data_index << endl;
     }
 
     assert(0);
@@ -309,7 +318,6 @@ uint64_t va_to_pa(uint32_t cpu, uint64_t instr_id, uint64_t va, uint64_t unique_
     if (va == 0) 
         assert(0);
 #endif
-
     uint8_t  swap = 0;
     uint64_t high_bit_mask = rotr64(cpu, lg2(NUM_CPUS)),
              unique_va = va | high_bit_mask;
@@ -866,6 +874,7 @@ int main(int argc, char** argv)
 
             // check for deadlock
             if (ooo_cpu[i].ROB.entry[ooo_cpu[i].ROB.head].ip && (ooo_cpu[i].ROB.entry[ooo_cpu[i].ROB.head].event_cycle + DEADLOCK_CYCLE) <= current_core_cycle[i])
+                
                 print_deadlock(i);
 
             // check for warmup

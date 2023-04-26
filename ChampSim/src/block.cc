@@ -1,12 +1,21 @@
 #include "block.h"
 
+#define PREFETCHER_TLB_REQUEST 69
+
 int PACKET_QUEUE::check_queue(PACKET *packet)
 {
+    // return -1;
     if ((head == tail) && occupancy == 0)
         return -1;
 
     if (head < tail) {
         for (uint32_t i=head; i<tail; i++) {
+            //NEW ADDITION
+            if (entry[i].data_index == PREFETCHER_TLB_REQUEST && packet->data_index != PREFETCHER_TLB_REQUEST)
+                continue;
+            if (entry[i].data_index != PREFETCHER_TLB_REQUEST && packet->data_index == PREFETCHER_TLB_REQUEST)
+                continue;
+            //END OF NEW ADDITION
             if (NAME == "L1D_WQ") {
                 if (entry[i].full_addr == packet->full_addr) {
                     DP (if (warmup_complete[packet->cpu]) {
@@ -29,6 +38,12 @@ int PACKET_QUEUE::check_queue(PACKET *packet)
     }
     else {
         for (uint32_t i=head; i<SIZE; i++) {
+            //NEW ADDITION
+            if (entry[i].data_index == PREFETCHER_TLB_REQUEST && packet->data_index != PREFETCHER_TLB_REQUEST)
+                continue;
+            if (entry[i].data_index != PREFETCHER_TLB_REQUEST && packet->data_index == PREFETCHER_TLB_REQUEST)
+                continue;
+            //END OF NEW ADDITION
             if (NAME == "L1D_WQ") {
                 if (entry[i].full_addr == packet->full_addr) {
                     DP (if (warmup_complete[packet->cpu]) {
@@ -49,6 +64,12 @@ int PACKET_QUEUE::check_queue(PACKET *packet)
             }
         }
         for (uint32_t i=0; i<tail; i++) {
+            //NEW ADDITION
+            if (entry[i].data_index == PREFETCHER_TLB_REQUEST && packet->data_index != PREFETCHER_TLB_REQUEST)
+                continue;
+            if (entry[i].data_index != PREFETCHER_TLB_REQUEST && packet->data_index == PREFETCHER_TLB_REQUEST)
+                continue;
+            //END OF NEW ADDITION
             if (NAME == "L1D_WQ") {
                 if (entry[i].full_addr == packet->full_addr) {
                     DP (if (warmup_complete[packet->cpu]) {
@@ -96,6 +117,10 @@ void PACKET_QUEUE::add_queue(PACKET *packet)
 
 void PACKET_QUEUE::remove_queue(PACKET *packet)
 {
+
+//    if(current_core_cycle[cpu] == 1071294){
+//         cout << "head " << head << " tail " << tail << endl;
+//    }
 #ifdef SANITY_CHECK
     if ((occupancy == 0) && (head == tail))
         assert(0);

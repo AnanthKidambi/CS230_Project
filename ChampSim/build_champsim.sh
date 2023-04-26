@@ -129,7 +129,7 @@ sed -i.bak 's/\<NUM_CPUS '${NUM_CORE}'\>/NUM_CPUS 1/g' inc/champsim.h
 
 cp branch/bimodal.bpred branch/branch_predictor.cc
 cp prefetcher/no.l1i_pref prefetcher/l1i_prefetcher.cc
-cp prefetcher/no.l1d_pref prefetcher/l1d_prefetcher.cc
-cp prefetcher/no.l2c_pref prefetcher/l2c_prefetcher.cc
-cp prefetcher/no.llc_pref prefetcher/llc_prefetcher.cc
+# cp prefetcher/no.l1d_pref prefetcher/l1d_prefetcher.cc
+# cp prefetcher/no.l2c_pref prefetcher/l2c_prefetcher.cc
+# cp prefetcher/no.llc_pref prefetcher/llc_prefetcher.cc
 cp replacement/lru.llc_repl replacement/llc_replacement.cc

@@ -513,6 +513,7 @@ uint32_t O3_CPU::add_to_decode_buffer(ooo_model_instr *arch_instr)
 
 uint32_t O3_CPU::check_rob(uint64_t instr_id)
 {
+    // cout << instr_id << endl;
     if ((ROB.head == ROB.tail) && ROB.occupancy == 0)
         return ROB.SIZE;
 
@@ -1954,21 +1955,25 @@ void O3_CPU::complete_data_fetch(PACKET_QUEUE *queue, uint8_t is_it_tlb)
 
 #ifdef SANITY_CHECK
     if (queue->entry[index].type != RFO) {
-        if (rob_index != check_rob(queue->entry[index].instr_id))
+        if (queue->entry[index].data_index != PREFETCHER_TLB_REQUEST && rob_index != check_rob(queue->entry[index].instr_id))
             assert(0);
     }
 #endif
-
+    // cout << "data index: " << queue->entry[index].data_index << endl;
     // update ROB entry
     if (is_it_tlb) { // DTLB
 
-        if (queue->entry[index].type == PREFETCHER_TLB_REQUEST){
+        if (queue->entry[index].data_index == PREFETCHER_TLB_REQUEST){
+            // cout << "packet prefetcher" << endl;
             PACKET reply;
             reply.virtual_addr = queue->entry[index].virtual_addr;
             reply.address = queue->entry[index].data_pa << LOG2_PAGE_SIZE;
+            reply.event_cycle = current_core_cycle[cpu];
             PREFETCHER_TLB_REPLY_QUEUE.add_queue(&reply);
+            queue->remove_queue(&queue->entry[index]);
+            return;
         }
-        else if (queue->entry[index].type == RFO) {
+        if (queue->entry[index].type == RFO) {
             SQ.entry[sq_index].physical_address = (queue->entry[index].data_pa << LOG2_PAGE_SIZE) | (SQ.entry[sq_index].virtual_address & ((1 << LOG2_PAGE_SIZE) - 1)); // translated address
             SQ.entry[sq_index].translated = COMPLETED;
             SQ.entry[sq_index].event_cycle = current_core_cycle[cpu];

@@ -4,10 +4,17 @@
 #define NEW_ADDITION(x) x
 #define REMOVE_OLD_ADDITION(x) 
 
+#define BKL_ID 3089437
+#define BKL_VA 94620510191616
+
 uint64_t l2pf_access = 0;
 
 void CACHE::handle_fill()
 {
+	// cout << "next_fill_index: " << MSHR.next_fill_index << endl;
+	// if (MSHR.entry[MSHR.next_fill_index].data_index == PREFETCHER_TLB_REQUEST){
+	// 	cout << "returning packet" << endl;
+	// }
 	// handle fill
 	uint32_t fill_cpu = (MSHR.next_fill_index == MSHR_SIZE) ? NUM_CPUS : MSHR.entry[MSHR.next_fill_index].cpu;
 	if (fill_cpu == NUM_CPUS)
@@ -200,6 +207,9 @@ void CACHE::handle_fill()
 				}
 			}
 
+			if (cache_type == IS_STLB && MSHR.entry[mshr_index].data_index == PREFETCHER_TLB_REQUEST)
+				upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+
 			// update processed packets
 			if (cache_type == IS_ITLB)
 			{
@@ -247,6 +257,9 @@ void CACHE::handle_fill()
 
 void CACHE::handle_writeback()
 {
+	// if (WQ.entry[WQ.head].ip == BKL_ID){
+	// 	cout << "ip reached handle_writeback of cache " << int(cache_type) << endl;
+	// }
 	// handle write
 	uint32_t writeback_cpu = WQ.entry[WQ.head].cpu;
 	if (writeback_cpu == NUM_CPUS)
@@ -279,11 +292,17 @@ void CACHE::handle_writeback()
 			block[set][way].dirty = 1;
 
 			if (cache_type == IS_ITLB)
-				WQ.entry[index].instruction_pa = block[set][way].data;
+				block[set][way].data = WQ.entry[index].instruction_pa;
 			else if (cache_type == IS_DTLB)
-				WQ.entry[index].data_pa = block[set][way].data;
+				block[set][way].data = WQ.entry[index].data_pa;
 			else if (cache_type == IS_STLB)
-				WQ.entry[index].data = block[set][way].data;
+				block[set][way].data = WQ.entry[index].data;
+			// if (cache_type == IS_ITLB)
+			// 	WQ.entry[index].instruction_pa = block[set][way].data;
+			// else if (cache_type == IS_DTLB)
+			// 	WQ.entry[index].data_pa = block[set][way].data;
+			// else if (cache_type == IS_STLB)
+			// 	WQ.entry[index].data = block[set][way].data;
 
 			// check fill level
 			if (WQ.entry[index].fill_level < fill_level)
@@ -565,6 +584,26 @@ void CACHE::handle_writeback()
 
 void CACHE::handle_read()
 {
+	// if (RQ.entry[RQ.head].ip == 0 && RQ.entry[RQ.head].virtual_addr == BKL_VA && cache_type == IS_STLB){
+	// 	cout << "BKL packet reached handle_read of STLB" << endl;
+	// }
+	// if (RQ.entry[RQ.head].instr_id == BKL_ID){
+	// 	cout << "ip: " << RQ.entry[RQ.head].ip << endl;
+	// 	cout << "cycle: " << current_core_cycle[cpu] << endl;
+	// 	cout << "next_fill_index: " << MSHR.next_fill_index << endl;
+	// 	// unsigned short* a = new unsigned short[1000];
+	// 	// cout << "dependencies: " << (RQ.entry[RQ.head].lq_index_depend_on_me.expand(a, 1000) + RQ.entry[RQ.head].sq_index_depend_on_me.expand(a, 1000) + RQ.entry[RQ.head].rob_index_depend_on_me.expand(a, 1000)) << endl;
+	// }
+	// if (RQ.entry[RQ.head].instr_id == BKL_ID){
+	// 	cout << "ip reached handle_read of cache " << int(cache_type) << endl;
+	// }
+	// cout << "Head of the queue: " << RQ.entry[RQ.head].ip << endl;
+	// for(int i{0}; i < RQ.SIZE; i++){
+	// 	if (RQ.entry[i].instr_id == BKL_ID){
+	// 		cout << "present with head: " << RQ.entry[RQ.head].ip  << " in cycle " << current_core_cycle[cpu] << " with index " << (i) << endl;
+	// 		cout << "head: " << RQ.head << ", tail: " << RQ.tail << endl; 
+	// 	}
+	// }
 	// handle read
 	for (uint32_t i = 0; i < MAX_READ; i++)
 	{
@@ -584,7 +623,9 @@ void CACHE::handle_read()
 
 			if (way >= 0)
 			{ // read hit
-
+				// if (RQ.entry[index].virtual_addr == BKL_VA && cache_type == IS_STLB){
+				// 	cout << "Read hit happened in STLB" << endl;
+				// }
 				if (cache_type == IS_ITLB)
 				{
 					RQ.entry[index].instruction_pa = block[set][way].data;
@@ -662,9 +703,18 @@ void CACHE::handle_read()
 					{
 						if (RQ.entry[index].instruction)
 							upper_level_icache[read_cpu]->return_data(&RQ.entry[index]);
-						if (RQ.entry[index].is_data)
+						if (RQ.entry[index].is_data){
+							// cout << "hello" << endl;
+							// cout << RQ.entry[index].address << endl;
+							// cout << index << endl;
+							// cout << upper_level_dcache[read_cpu] << endl;
 							upper_level_dcache[read_cpu]->return_data(&RQ.entry[index]);
+						}
 					}
+				}
+
+				if (cache_type == IS_STLB && RQ.entry[index].data_index == PREFETCHER_TLB_REQUEST){
+					upper_level_dcache[cpu]->return_data(&RQ.entry[index]);
 				}
 
 				// update prefetch stats and reset prefetch bit
@@ -678,13 +728,18 @@ void CACHE::handle_read()
 				HIT[RQ.entry[index].type]++;
 				ACCESS[RQ.entry[index].type]++;
 
+				// if (RQ.entry[index].instr_id == BKL_ID){
+				// 	cout << "processed packet (1): " << RQ.entry[index].instr_id << endl;
+				// }
 				// remove this entry from RQ
 				RQ.remove_queue(&RQ.entry[index]);
 				reads_available_this_cycle--;
 			}
 			else
 			{ // read miss
-
+				// if (RQ.entry[index].instr_id == BKL_ID){
+				// 	cout << "Read miss happened in DTLB" << endl;
+				// }
 				DP(if (warmup_complete[read_cpu]) {
                 cout << "[" << NAME << "] " << __func__ << " read miss";
                 cout << " instr_id: " << RQ.entry[index].instr_id << " address: " << hex << RQ.entry[index].address;
@@ -694,7 +749,9 @@ void CACHE::handle_read()
 				// check mshr
 				uint8_t miss_handled = 1;
 				int mshr_index = check_mshr(&RQ.entry[index]);
-
+				// if (RQ.entry[index].instr_id == BKL_ID){
+				// 	cout << "mshr_index: " << mshr_index << endl;
+				// }
 				if (mshr_index == -2)
 				{
 					// this is a data/instruction collision in the MSHR, so we have to wait before we can allocate this miss
@@ -702,7 +759,10 @@ void CACHE::handle_read()
 				}
 				else if ((mshr_index == -1) && (MSHR.occupancy < MSHR_SIZE))
 				{ // this is a new miss
-
+					// if (RQ.entry[index].instr_id == BKL_ID){
+					// 	cout << "Packet not found in MSHR but can be added: " << RQ.entry[index].instr_id << endl;
+					// 	cout << "mshr occupancy: " << MSHR.occupancy << endl;
+					// }
 					if (cache_type == IS_LLC)
 					{
 						// check to make sure the DRAM RQ has room for this LLC read miss
@@ -722,6 +782,9 @@ void CACHE::handle_read()
 					else
 					{
 						// add it to mshr (read miss)
+						// if (RQ.entry[index].instr_id == BKL_ID){
+						// 	cout << "Adding to MSHR: " << RQ.entry[index].instr_id << endl;
+						// }
 						add_mshr(&RQ.entry[index]);
 
 						// add it to the next level's read queue
@@ -732,11 +795,18 @@ void CACHE::handle_read()
 							if (cache_type == IS_STLB)
 							{
 								// TODO: need to differentiate page table walk and actual swap
-
+								// if(RQ.entry[index].data_index == PREFETCHER_TLB_REQUEST){
+								// 	cout << "STLB queried at line 746 in cache.cc" << endl;
+								// }
 								// emulate page table walk
 								uint64_t pa = va_to_pa(read_cpu, RQ.entry[index].instr_id, RQ.entry[index].full_addr, RQ.entry[index].address, 0);
-
+								// if(RQ.entry[index].data_index == PREFETCHER_TLB_REQUEST){
+								// 	cout << "STLB page returned at line 746 in cache.cc: " << pa << endl;
+								// }
 								RQ.entry[index].data = pa >> LOG2_PAGE_SIZE;
+
+								// if(RQ.entry[index].data_index == PREFETCHER_TLB_REQUEST)
+									// cout << "returned physical address " << (pa >> LOG2_PAGE_SIZE) << endl;
 								RQ.entry[index].event_cycle = current_core_cycle[read_cpu];
 								return_data(&RQ.entry[index]);
 							}
@@ -747,14 +817,23 @@ void CACHE::handle_read()
 				{
 					if ((mshr_index == -1) && (MSHR.occupancy == MSHR_SIZE))
 					{ // not enough MSHR resource
-
+						// if (RQ.entry[index].instr_id == BKL_ID){
+						// 	cout << "stalling, I'm pretty sure: " << RQ.entry[index].instr_id << endl;
+						// 	cout << "MSHR entries: " << endl;
+						// 	for(int i{0}; i < MSHR.SIZE; i++){
+						// 		cout << "ip: " << MSHR.entry[i].ip << ", virtual_addr: " << MSHR.entry[i].virtual_addr << endl;
+						// 	}
+						// 	cout << "................" << endl;
+						// }
 						// cannot handle miss request until one of MSHRs is available
 						miss_handled = 0;
 						STALL[RQ.entry[index].type]++;
 					}
 					else if (mshr_index != -1)
 					{ // already in-flight miss
-
+						// if (RQ.entry[index].instr_id == BKL_ID){
+						// 	cout << "merging shit with new shit: " << RQ.entry[index].instr_id << endl;
+						// }
 						// mark merged consumer
 						if (RQ.entry[index].type == RFO)
 						{
@@ -879,6 +958,17 @@ void CACHE::handle_read()
 					MISS[RQ.entry[index].type]++;
 					ACCESS[RQ.entry[index].type]++;
 
+					// if (RQ.entry[index].instr_id == BKL_ID){
+					// 	cout << "processed packet (2): " << RQ.entry[index].instr_id << endl;
+					// 	cout << "Cache type: " << int(cache_type) << endl;
+					// 	for(int i{0}; i < MSHR_SIZE; i++){
+					// 		cout << MSHR.head << endl;
+					// 		if (MSHR.entry[i].instr_id == BKL_ID){
+					// 			cout << "Entry found in MSHR" << endl;
+					// 			break;
+					// 		}
+					// 	}
+					// }
 					// remove this entry from RQ
 					RQ.remove_queue(&RQ.entry[index]);
 					reads_available_this_cycle--;
@@ -899,6 +989,9 @@ void CACHE::handle_read()
 
 void CACHE::handle_prefetch()
 {
+	// if (PQ.entry[PQ.head].instr_id == BKL_ID){
+	// 	cout << "ip reached handle_prefetch of cache " << int(cache_type) << endl;
+	// }
 	// handle prefetch
 
 	for (uint32_t i = 0; i < MAX_READ; i++)
@@ -1283,15 +1376,27 @@ int CACHE::invalidate_entry(uint64_t inval_addr)
 
 int CACHE::add_rq(PACKET *packet)
 {
+	// if (packet->instr_id == BKL_ID){
+	// 	cout << "packet ip: " << packet->ip << endl;
+	// 	cout << "ip reached add_rq of cache " << int(cache_type) << endl;
+	// 	cout << "cycle: " << current_core_cycle[cpu] << endl;
+	// }
+	// if (current_core_cycle[cpu] == 1492562){
+	// 	cout << "instr id of kicking packet: " << packet->instr_id << endl;
+	// 	cout << "kicking ip: " << packet->ip << endl;
+	// 	cout << "head: " << RQ.head << ", tail: " << RQ.tail << endl; 
+	// }
+	// if (packet->ip == 0 && packet->virtual_addr == BKL_VA && cache_type == IS_STLB){
+	// 	cout << "BKL packet reached add_rq of STLB" << endl;
+	// }
 	// check for the latest wirtebacks in the write queue
 	int wq_index = WQ.check_queue(packet);
 	if (wq_index != -1)
 	{
-
 		// check fill level
 		if (packet->fill_level < fill_level)
 		{
-
+			assert(packet->data_index != PREFETCHER_TLB_REQUEST);
 			packet->data = WQ.entry[wq_index].data;
 
 			if (fill_level == FILL_L2)
@@ -1314,6 +1419,9 @@ int CACHE::add_rq(PACKET *packet)
 			}
 		}
 
+		if (cache_type == IS_STLB && packet->data_index == PREFETCHER_TLB_REQUEST){
+				upper_level_dcache[packet->cpu]->return_data(packet);
+		}
 #ifdef SANITY_CHECK
 		if (cache_type == IS_ITLB)
 			assert(0);
@@ -1344,12 +1452,19 @@ int CACHE::add_rq(PACKET *packet)
 	}
 
 	// check for duplicates in the read queue
-	int index = RQ.check_queue(packet);
+	int index;
+	if (packet->data_index == PREFETCHER_TLB_REQUEST)
+		index = -1;
+	else
+		index = RQ.check_queue(packet);
+	
+	assert(RQ.entry[index].data_index != PREFETCHER_TLB_REQUEST);
 	if (index != -1)
 	{
 
 		if (packet->instruction)
 		{
+			if (packet->data_index == PREFETCHER_TLB_REQUEST) cout << "packet misplaced, line 1364 of cache.cc" << endl; 
 			uint32_t rob_index = packet->rob_index;
 			RQ.entry[index].rob_index_depend_on_me.insert(rob_index);
 			RQ.entry[index].instruction = 1; // add as instruction type
@@ -1369,7 +1484,7 @@ int CACHE::add_rq(PACKET *packet)
 				RQ.entry[index].sq_index_depend_on_me.insert(sq_index);
 				RQ.entry[index].store_merged = 1;
 			}
-			else
+			else if (packet->data_index != PREFETCHER_TLB_REQUEST)
 			{
 				uint32_t lq_index = packet->lq_index;
 				RQ.entry[index].lq_index_depend_on_me.insert(lq_index);
@@ -1394,6 +1509,10 @@ int CACHE::add_rq(PACKET *packet)
 		RQ.MERGED++;
 		RQ.ACCESS++;
 
+		// if (packet->instr_id == BKL_ID || current_core_cycle[cpu] == 1492562){
+		// 	cout << "index for ip: " << index << endl;
+		// }
+
 		return index; // merged index
 	}
 
@@ -1407,6 +1526,10 @@ int CACHE::add_rq(PACKET *packet)
 
 	// if there is no duplicate, add it to RQ
 	index = RQ.tail;
+
+	// if (packet->instr_id == BKL_ID || current_core_cycle[cpu] == 1071295){
+	// 	cout << "index for ip: " << index << endl;
+	// }
 
 #ifdef SANITY_CHECK
 	if (RQ.entry[index].address != 0)
@@ -1448,6 +1571,9 @@ int CACHE::add_rq(PACKET *packet)
 
 int CACHE::add_wq(PACKET *packet)
 {
+	// if (packet->instr_id == BKL_ID){
+	// 	cout << "ip reached add_wq of cache " << int(cache_type) << endl;
+	// }
 	// check for duplicates in the write queue
 	int index = WQ.check_queue(packet);
 	if (index != -1)
@@ -1505,8 +1631,8 @@ int CACHE::prefetch_line(uint64_t ip, uint64_t base_addr, uint64_t pf_addr, int 
 
 	if (PQ.occupancy < PQ.SIZE)
 	{
-		if ((base_addr >> LOG2_PAGE_SIZE) == (pf_addr >> LOG2_PAGE_SIZE))
-		{
+		if (true || (base_addr >> LOG2_PAGE_SIZE) == (pf_addr >> LOG2_PAGE_SIZE))
+		{   // change this to allow prefetch across pages
 
 			PACKET pf_packet;
 			pf_packet.fill_level = pf_fill_level;
@@ -1728,6 +1854,10 @@ void CACHE::return_data(PACKET *packet)
 	MSHR.entry[mshr_index].data = packet->data;
 	MSHR.entry[mshr_index].pf_metadata = packet->pf_metadata;
 
+	// if(packet->data_index == PREFETCHER_TLB_REQUEST && cache_type == IS_DTLB){
+	// 	cout << "Added TLB request to MSHR" << endl;
+	// }
+
 	// ADD LATENCY
 	if (MSHR.entry[mshr_index].event_cycle < current_core_cycle[packet->cpu])
 		MSHR.entry[mshr_index].event_cycle = current_core_cycle[packet->cpu] + LATENCY;
@@ -1782,11 +1912,16 @@ int CACHE::check_mshr(PACKET *packet)
 {
 	// search mshr
 	// bool instruction_and_data_collision = false;
-
+	
 	for (uint32_t index = 0; index < MSHR_SIZE; index++)
 	{
 		if (MSHR.entry[index].address == packet->address)
 		{
+			//Don't merge champsim's packets with prefetcher's packets
+			if (MSHR.entry[index].data_index == PREFETCHER_TLB_REQUEST && packet->data_index != PREFETCHER_TLB_REQUEST)
+                continue;
+            if (MSHR.entry[index].data_index != PREFETCHER_TLB_REQUEST && packet->data_index == PREFETCHER_TLB_REQUEST)
+                continue;
 			// if(MSHR.entry[index].instruction != packet->instruction)
 			//   {
 			//     instruction_and_data_collision = true;
@@ -1824,6 +1959,9 @@ int CACHE::check_mshr(PACKET *packet)
 
 void CACHE::add_mshr(PACKET *packet)
 {
+	// if (packet->instr_id == BKL_ID){
+	// 	cout << "packet reached add_mshr: " << packet->instr_id << endl;
+	// }
 	uint32_t index = 0;
 
 	packet->cycle_enqueued = current_core_cycle[packet->cpu];
@@ -1833,7 +1971,9 @@ void CACHE::add_mshr(PACKET *packet)
 	{
 		if (MSHR.entry[index].address == 0)
 		{
-
+			// if (packet->instr_id == BKL_ID){
+			// 	cout << "packet added to mshr: " << packet->instr_id << endl;
+			// }
 			MSHR.entry[index] = *packet;
 			MSHR.entry[index].returned = INFLIGHT;
 			MSHR.occupancy++;

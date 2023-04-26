@@ -1,0 +1,269 @@
+
+*** ChampSim Multicore Out-of-Order Simulator ***
+
+Warmup Instructions: 30000000
+Simulation Instructions: 30000000
+Number of CPUs: 1
+LLC sets: 2048
+LLC ways: 16
+Off-chip DRAM Size: 4096 MB Channels: 1 Width: 64-bit Data Rate: 3200 MT/s
+
+CPU 0 runs ../traces//bfs-10.trace.xz
+CPU 0 GSHARE branch predictor
+TLB reply occupancy: 1
+page address: 279264050909184
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778496
+number of prefetches in dict: 1
+virtual address obtained: 94239004778112
+TLB reply occupancy: 1
+page address: 279264050937856
+key present in dict: 94239004778432
+number of prefetches in dict: 6
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778496
+number of prefetches in dict: 6
+virtual address obtained: 94239004778496
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 0in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 1in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 2in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 3in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 4in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 5in line 501 of opt.l1d_pref
+TLB reply occupancy: 1
+page address: 279264050937856
+key present in dict: 94239004782208
+number of prefetches in dict: 0
+key present in dict: 94239004782592
+number of prefetches in dict: 1
+key present in dict: 94239004778432
+number of prefetches in dict: 6
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778496
+number of prefetches in dict: 6
+virtual address obtained: 94239004782208
+TLB reply occupancy: 1
+page address: 279264050946048
+key present in dict: 94239004782528
+number of prefetches in dict: 6
+key present in dict: 94239004782208
+number of prefetches in dict: 0
+key present in dict: 94239004782592
+number of prefetches in dict: 6
+key present in dict: 94239004778432
+number of prefetches in dict: 6
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778496
+number of prefetches in dict: 6
+virtual address obtained: 94239004782592
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 6in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 7in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 8in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 9in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 10in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 11in line 501 of opt.l1d_pref
+TLB reply occupancy: 1
+page address: 279264050946048
+key present in dict: 94239004786304
+number of prefetches in dict: 0
+key present in dict: 94239004786688
+number of prefetches in dict: 1
+key present in dict: 94239004782528
+number of prefetches in dict: 6
+key present in dict: 94239004782208
+number of prefetches in dict: 0
+key present in dict: 94239004782592
+number of prefetches in dict: 6
+key present in dict: 94239004778432
+number of prefetches in dict: 6
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778496
+number of prefetches in dict: 6
+virtual address obtained: 94239004786304
+TLB reply occupancy: 1
+page address: 279264050950144
+key present in dict: 94239004790400
+number of prefetches in dict: 0
+key present in dict: 94239004790784
+number of prefetches in dict: 1
+key present in dict: 94239004786304
+number of prefetches in dict: 0
+key present in dict: 94239004786688
+number of prefetches in dict: 6
+key present in dict: 94239004782528
+number of prefetches in dict: 6
+key present in dict: 94239004782208
+number of prefetches in dict: 0
+key present in dict: 94239004782592
+number of prefetches in dict: 6
+key present in dict: 94239004778432
+number of prefetches in dict: 6
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778496
+number of prefetches in dict: 6
+virtual address obtained: 94239004790400
+TLB reply occupancy: 1
+page address: 279264050958336
+key present in dict: 94239004790720
+number of prefetches in dict: 6
+key present in dict: 94239004790400
+number of prefetches in dict: 0
+key present in dict: 94239004790784
+number of prefetches in dict: 6
+key present in dict: 94239004786304
+number of prefetches in dict: 0
+key present in dict: 94239004786688
+number of prefetches in dict: 6
+key present in dict: 94239004782528
+number of prefetches in dict: 6
+key present in dict: 94239004782208
+number of prefetches in dict: 0
+key present in dict: 94239004782592
+number of prefetches in dict: 6
+key present in dict: 94239004778432
+number of prefetches in dict: 6
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778496
+number of prefetches in dict: 6
+virtual address obtained: 94239004790784
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 12in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 13in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 14in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 15in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 16in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 17in line 501 of opt.l1d_pref
+TLB reply occupancy: 1
+page address: 279264050958336
+key present in dict: 94239004794496
+number of prefetches in dict: 0
+key present in dict: 94239004794880
+number of prefetches in dict: 1
+key present in dict: 94239004790720
+number of prefetches in dict: 6
+key present in dict: 94239004790400
+number of prefetches in dict: 0
+key present in dict: 94239004790784
+number of prefetches in dict: 6
+key present in dict: 94239004786304
+number of prefetches in dict: 0
+key present in dict: 94239004786688
+number of prefetches in dict: 6
+key present in dict: 94239004782528
+number of prefetches in dict: 6
+key present in dict: 94239004782208
+number of prefetches in dict: 0
+key present in dict: 94239004782592
+number of prefetches in dict: 6
+key present in dict: 94239004778432
+number of prefetches in dict: 6
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778496
+number of prefetches in dict: 6
+virtual address obtained: 94239004794496
+TLB reply occupancy: 1
+page address: 279264050962432
+key present in dict: 94239004798976
+number of prefetches in dict: 1
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778432
+number of prefetches in dict: 6
+key present in dict: 94239004778496
+number of prefetches in dict: 6
+key present in dict: 94239004782208
+number of prefetches in dict: 0
+key present in dict: 94239004782528
+number of prefetches in dict: 6
+key present in dict: 94239004782592
+number of prefetches in dict: 6
+key present in dict: 94239004786304
+number of prefetches in dict: 0
+key present in dict: 94239004786688
+number of prefetches in dict: 6
+key present in dict: 94239004790400
+number of prefetches in dict: 0
+key present in dict: 94239004790720
+number of prefetches in dict: 6
+key present in dict: 94239004798592
+number of prefetches in dict: 0
+key present in dict: 94239004794880
+number of prefetches in dict: 6
+key present in dict: 94239004790784
+number of prefetches in dict: 6
+key present in dict: 94239004794496
+number of prefetches in dict: 0
+virtual address obtained: 94239004798592
+TLB reply occupancy: 1
+page address: 279264050970624
+key present in dict: 94239004798976
+number of prefetches in dict: 6
+key present in dict: 94239004778112
+number of prefetches in dict: 0
+key present in dict: 94239004778432
+number of prefetches in dict: 6
+key present in dict: 94239004798912
+number of prefetches in dict: 6
+key present in dict: 94239004778496
+number of prefetches in dict: 6
+key present in dict: 94239004782208
+number of prefetches in dict: 0
+key present in dict: 94239004782528
+number of prefetches in dict: 6
+key present in dict: 94239004782592
+number of prefetches in dict: 6
+key present in dict: 94239004786304
+number of prefetches in dict: 0
+key present in dict: 94239004786688
+number of prefetches in dict: 6
+key present in dict: 94239004790400
+number of prefetches in dict: 0
+key present in dict: 94239004790720
+number of prefetches in dict: 6
+key present in dict: 94239004798592
+number of prefetches in dict: 0
+key present in dict: 94239004794880
+number of prefetches in dict: 6
+key present in dict: 94239004790784
+number of prefetches in dict: 6
+key present in dict: 94239004794496
+number of prefetches in dict: 0
+virtual address obtained: 94239004798976
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 18in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 19in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 20in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 21in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 22in line 501 of opt.l1d_pref
+inside the loop on line 498 of opt.l1d_pref
+Prefetching: 23in line 501 of opt.l1d_pref
+Caught signal: 2

@@ -228,4 +228,15 @@ class O3_CPU {
 
 extern O3_CPU ooo_cpu[NUM_CPUS];
 
+
+////////////////// new struct ///////////////////////
+struct future_pref
+{
+  uint64_t num_prefeteches = 0;
+  uint64_t cycle = 0;
+  int stride = 0;
+  uint32_t metadata = 0;
+  uint64_t prev_addr = 0;
+};
+
 #endif
