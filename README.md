@@ -20,3 +20,6 @@ link to traces:
 link to ChampSim:
 https://github.com/casperIITB/ChampSim
 
+## High level overview of the implementation:
+In IPCP, we issue prefetches according to strides when using the constant stride and stream prefetches. Let the base physical address used for issuing prefetches be *p* and the virtual address corresponding to *p* be *v*. In IPCP, we increment *p* by *stride* and prefetch this address until we hit the prefetch degree. When *p+i\*(stride)* crosses the page boundary, IPCP stops prefetching. PAP tries to not stop prefetching at this stage by issuing a translation request to the DTLB for the virtual address *v+i\*(stride)*. After we get the physical address corresponding to this virtual address, we again start prefetching until we prefetch the remnant of *prefetch_degree* for the given base address.
+
