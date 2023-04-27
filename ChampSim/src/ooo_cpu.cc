@@ -513,7 +513,6 @@ uint32_t O3_CPU::add_to_decode_buffer(ooo_model_instr *arch_instr)
 
 uint32_t O3_CPU::check_rob(uint64_t instr_id)
 {
-    // cout << instr_id << endl;
     if ((ROB.head == ROB.tail) && ROB.occupancy == 0)
         return ROB.SIZE;
 
@@ -1959,12 +1958,10 @@ void O3_CPU::complete_data_fetch(PACKET_QUEUE *queue, uint8_t is_it_tlb)
             assert(0);
     }
 #endif
-    // cout << "data index: " << queue->entry[index].data_index << endl;
     // update ROB entry
     if (is_it_tlb) { // DTLB
 
         if (queue->entry[index].data_index == PREFETCHER_TLB_REQUEST){
-            // cout << "packet prefetcher" << endl;
             PACKET reply;
             reply.virtual_addr = queue->entry[index].virtual_addr;
             reply.address = queue->entry[index].data_pa << LOG2_PAGE_SIZE;

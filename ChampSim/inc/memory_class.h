@@ -12,7 +12,7 @@
 #define NUM_TYPES 4
 
 //new addition
-#define PREFETCHER_TLB_REQUEST 69
+#define PREFETCHER_TLB_REQUEST 73
 
 extern uint32_t tRP,  // Row Precharge (RP) latency
                 tRCD, // Row address to Column address (RCD) latency

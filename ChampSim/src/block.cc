@@ -1,6 +1,6 @@
 #include "block.h"
 
-#define PREFETCHER_TLB_REQUEST 69
+#define PREFETCHER_TLB_REQUEST 73
 
 int PACKET_QUEUE::check_queue(PACKET *packet)
 {
@@ -118,9 +118,6 @@ void PACKET_QUEUE::add_queue(PACKET *packet)
 void PACKET_QUEUE::remove_queue(PACKET *packet)
 {
 
-//    if(current_core_cycle[cpu] == 1071294){
-//         cout << "head " << head << " tail " << tail << endl;
-//    }
 #ifdef SANITY_CHECK
     if ((occupancy == 0) && (head == tail))
         assert(0);
